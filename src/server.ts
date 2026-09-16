@@ -86,7 +86,7 @@ export function createOkfMcpServer(registry: OkfBundleRegistry, options: CreateO
     "okf_load_bundle",
     {
       title: "OKF Load Bundle",
-      description: "Load an OKF bundle from a supported GitHub URL or Markdown link for this server session.",
+      description: "Load an OKF bundle for this server session from a GitHub URL, Markdown link, local directory, local .zip archive (optionally with #sub/path), or file:// URL.",
       inputSchema: {
         bundle_url: z.string(),
         refresh: z.boolean().default(false)
@@ -259,7 +259,7 @@ export function createOkfMcpServer(registry: OkfBundleRegistry, options: CreateO
               "",
               "For each user question:",
               "1. Call okf_list_bundles to see which bundles are loaded.",
-              "2. If the needed bundle is missing and the user provides a URL, call okf_load_bundle.",
+              "2. If the needed bundle is missing and the user provides a GitHub URL, local folder, or zip archive path, call okf_load_bundle.",
               "3. Pass bundle_id to every bundle-specific tool.",
               "4. Search for relevant concepts.",
               "5. Open the most relevant concept.",

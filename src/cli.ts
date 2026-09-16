@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import os from "node:os";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { Command } from "commander";
 import { loadBundleFromUrl } from "./bundles/loadBundle.js";
@@ -7,6 +9,7 @@ import { runStdioServer } from "./server.js";
 
 interface CliOptions {
   bundleUrl: string[];
+  bundlePath: string[];
   cacheDir: string;
   refresh: boolean;
   serverName: string;
@@ -18,7 +21,7 @@ export async function main(argv = process.argv): Promise<void> {
   const options = program.opts<CliOptions>();
   const registry = new OkfBundleRegistry();
 
-  for (const bundleUrl of options.bundleUrl) {
+  for (const bundleUrl of [...options.bundleUrl, ...options.bundlePath]) {
     const entry = await loadBundleFromUrl({
       bundleUrl,
       cacheDir: options.cacheDir,
@@ -35,10 +38,20 @@ export function createCliProgram(): Command {
   return program
     .name("okf-atlas-mcp")
     .description("MCP server for navigating OKF knowledge bundles.")
-    .option("--bundle-url <url>", "URL to an OKF bundle. Can be provided multiple times.", collectValues, [])
-    .option("--cache-dir <path>", "Local folder for downloaded bundles.", ".okf-cache")
+    .option(
+      "--bundle-url <source>",
+      "GitHub URL, local directory, or local .zip archive of an OKF bundle. Can be provided multiple times.",
+      collectValues,
+      []
+    )
+    .option("--bundle-path <path>", "Alias of --bundle-url for local directories or .zip archives.", collectValues, [])
+    .option("--cache-dir <path>", "Local folder for downloaded and extracted bundles.", defaultCacheDir())
     .option("--refresh <boolean>", "Re-download even if cached.", parseBoolean, false)
     .option("--server-name <name>", "Name exposed by the MCP server.", "okf-atlas-mcp");
+}
+
+export function defaultCacheDir(): string {
+  return path.join(os.homedir(), ".okf-atlas-mcp", "cache");
 }
 
 function parseBoolean(value: string): boolean {

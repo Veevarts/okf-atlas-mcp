@@ -1,19 +1,35 @@
-# okf-atlas-mcp
+# okf-atlas-mcp (Veevarts fork)
 
-[![CI](https://github.com/rodcar/okf-atlas-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/rodcar/okf-atlas-mcp/actions/workflows/ci.yml)
+[![CI](https://github.com/Veevarts/okf-atlas-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Veevarts/okf-atlas-mcp/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-`okf-atlas-mcp` is a TypeScript MCP server for navigating OKF knowledge bundles.
+Fork of [rodcar/okf-atlas-mcp](https://github.com/rodcar/okf-atlas-mcp): a TypeScript MCP server for navigating OKF knowledge bundles.
 
-It loads OKF bundles from GitHub URLs, parses Markdown concepts and YAML frontmatter, builds local in-memory graphs, and exposes MCP tools/resources so agents can inspect, search, and navigate the bundles without loading the entire knowledge base into context.
+What this fork adds:
+
+- **Zero-build usage via `npx`**: `dist/` is committed, so `npx github:Veevarts/okf-atlas-mcp` runs without cloning or compiling.
+- **Local bundle sources**: load bundles from a local directory, a downloaded repository `.zip`, or a `file://` URL, in addition to GitHub URLs.
+
+## Quick Start
+
+```bash
+npx github:Veevarts/okf-atlas-mcp --bundle-url "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin"
+```
+
+Or with a local folder or a repository zip you downloaded from GitHub:
+
+```bash
+npx github:Veevarts/okf-atlas-mcp --bundle-path ./my-okf-bundle
+npx github:Veevarts/okf-atlas-mcp --bundle-path ~/Downloads/knowledge-catalog-main.zip#okf/bundles/crypto_bitcoin
+```
 
 ## Why
 
 OKF is the source of truth. This server treats each loaded OKF bundle as a navigable graph:
 
 ```text
-OKF bundle URL
-  -> download bundle
+OKF bundle source (GitHub URL, local folder, or .zip)
+  -> download or extract bundle
   -> parse Markdown + YAML frontmatter
   -> build local concept graph
   -> expose MCP resources and tools
@@ -31,7 +47,7 @@ The server does not execute domain-specific queries. For example, the Bitcoin OK
 ## Install From Source
 
 ```bash
-git clone https://github.com/rodcar/okf-atlas-mcp.git
+git clone https://github.com/Veevarts/okf-atlas-mcp.git
 cd okf-atlas-mcp
 npm ci
 npm run build
@@ -40,21 +56,13 @@ npm run build
 Run locally:
 
 ```bash
-node dist/cli.js --bundle-url "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin"
+node bin/okf-atlas-mcp.js --bundle-path ./path/to/bundle
 ```
 
 During development:
 
 ```bash
-npm run dev -- --bundle-url "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin"
-```
-
-## Future npm Usage
-
-The package is prepared for npm publication, but publishing is not automated yet. After publication, usage will look like:
-
-```bash
-npx okf-atlas-mcp --bundle-url "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin"
+npm run dev -- --bundle-path ./path/to/bundle
 ```
 
 ## CLI
@@ -62,47 +70,51 @@ npx okf-atlas-mcp --bundle-url "https://github.com/GoogleCloudPlatform/knowledge
 Start empty and let the agent load bundles at runtime:
 
 ```bash
-okf-atlas-mcp
+npx github:Veevarts/okf-atlas-mcp
 ```
 
-Start with one bundle:
+### Bundle sources
+
+Every source flag (`--bundle-url`, `--bundle-path`, and the `bundle_url` argument of `okf_load_bundle`) accepts any of:
+
+| Source | Example |
+| --- | --- |
+| GitHub tree URL | `https://github.com/owner/repo/tree/main/okf/bundles/sample` |
+| GitHub repository root | `https://github.com/owner/repo` |
+| Markdown link wrapping a GitHub URL | `[owner/repo](https://github.com/owner/repo)` |
+| Local directory | `./okf/bundles/sample` or `/abs/path/sample` |
+| Local `.zip` archive | `~/Downloads/repo-main.zip` |
+| Local `.zip` with a sub path | `~/Downloads/repo-main.zip#okf/bundles/sample` |
+| `file://` URL | `file:///abs/path/sample` |
+
+Zip handling:
+
+- Archives downloaded from GitHub ("Download ZIP") wrap everything in a single `repo-branch/` folder. That folder is detected automatically, so `repo-main.zip` loads the repository root as the bundle.
+- When the bundle lives in a subdirectory, append `#path/inside/archive`.
+- Archives are extracted once into `--cache-dir`, keyed by content hash. Pass `--refresh true` to re-extract.
+- The bundle id defaults to the archive name (without `.zip`), or to the last segment of the sub path when one is given. Directories use the folder name.
+
+Start with one or several bundles, mixing sources freely:
 
 ```bash
-okf-atlas-mcp --bundle-url "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin"
-```
-
-If an OKF bundle is stored at the repository root, provide the repository URL instead:
-
-```bash
-okf-atlas-mcp --bundle-url "https://github.com/rodcar/ai-engineering-okf"
-```
-
-Markdown links are accepted too:
-
-```bash
-okf-atlas-mcp --bundle-url "[rodcar/ai-engineering-okf](https://github.com/rodcar/ai-engineering-okf)"
-```
-
-Start with multiple bundles:
-
-```bash
-okf-atlas-mcp \
+npx github:Veevarts/okf-atlas-mcp \
   --bundle-url "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin" \
-  --bundle-url "https://github.com/example/repo/tree/main/okf/bundles/another_bundle"
+  --bundle-path ./internal-okf \
+  --bundle-path ~/Downloads/knowledge-catalog-main.zip#okf/bundles/another_bundle
 ```
 
 Options:
 
 ```bash
 okf-atlas-mcp \
-  --bundle-url <url> \
-  --bundle-url <url> \
-  --cache-dir .okf-cache \
+  --bundle-url <source> \
+  --bundle-path <path> \
+  --cache-dir ~/.okf-atlas-mcp/cache \
   --refresh false \
   --server-name okf-atlas-mcp
 ```
 
-`--bundle-url` can be repeated and is optional. If omitted, use `okf_load_bundle` from the MCP client. Repository root URLs load the root directory as the OKF bundle after resolving the repository default branch. Use `/tree/{branch}/{path}` URLs for bundles stored in subdirectories.
+`--bundle-url` and `--bundle-path` are interchangeable, can be repeated, and are optional. If omitted, use `okf_load_bundle` from the MCP client with a GitHub URL or an absolute local path. `--cache-dir` defaults to `~/.okf-atlas-mcp/cache`, so no flag is required for MCP clients that start the server with an arbitrary working directory. Repository root URLs load the root directory as the OKF bundle after resolving the repository default branch. Use `/tree/{branch}/{path}` URLs for bundles stored in subdirectories.
 
 ## Claude Desktop
 
@@ -114,22 +126,38 @@ On macOS:
 ~/Library/Application Support/Claude/claude_desktop_config.json
 ```
 
-Start empty:
+Zero-config: start empty and let the agent load bundles at runtime with `okf_load_bundle` (pass absolute paths for local folders or zips):
 
 ```json
 {
   "mcpServers": {
     "okf-atlas-mcp": {
-      "command": "node",
+      "command": "npx",
+      "args": ["-y", "github:Veevarts/okf-atlas-mcp"]
+    }
+  }
+}
+```
+
+Preloading a bundle at startup with `npx` (no clone, no build):
+
+```json
+{
+  "mcpServers": {
+    "okf-atlas-mcp": {
+      "command": "npx",
       "args": [
-        "/absolute/path/to/okf-atlas-mcp/dist/cli.js"
+        "-y",
+        "github:Veevarts/okf-atlas-mcp",
+        "--bundle-path",
+        "/absolute/path/to/okf-bundle-or-archive.zip"
       ]
     }
   }
 }
 ```
 
-Start with a preloaded bundle:
+Using a local clone:
 
 ```json
 {
@@ -137,18 +165,28 @@ Start with a preloaded bundle:
     "okf-atlas-mcp": {
       "command": "node",
       "args": [
-        "/absolute/path/to/okf-atlas-mcp/dist/cli.js",
+        "/absolute/path/to/okf-atlas-mcp/bin/okf-atlas-mcp.js",
         "--bundle-url",
-        "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin",
-        "--cache-dir",
-        "/absolute/path/to/okf-atlas-mcp/.okf-cache"
+        "https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf/bundles/crypto_bitcoin"
       ]
     }
   }
 }
 ```
 
-If Claude Desktop cannot find `node`, replace `"command": "node"` with the absolute path from `which node`.
+If Claude Desktop cannot find `node` or `npx`, replace the command with the absolute path from `which node` or `which npx`.
+
+## Claude Code
+
+```bash
+claude mcp add okf-atlas-mcp -- npx -y github:Veevarts/okf-atlas-mcp
+```
+
+Or preload a bundle:
+
+```bash
+claude mcp add okf-atlas-mcp -- npx -y github:Veevarts/okf-atlas-mcp --bundle-path /absolute/path/to/bundle
+```
 
 ### Private GitHub Repositories
 
@@ -187,22 +225,16 @@ When these variables are present, `okf-atlas-mcp` auto-discovers the app install
 
 ## Runtime Bundle Loading
 
-Ask your MCP client to call:
+Ask your MCP client to call the tool `okf_load_bundle` with a GitHub URL, a local folder, or a zip archive:
 
 ```json
 {
-  "bundle_url": "[rodcar/ai-engineering-okf](https://github.com/rodcar/ai-engineering-okf)",
+  "bundle_url": "/absolute/path/to/knowledge-catalog-main.zip#okf/bundles/crypto_bitcoin",
   "refresh": false
 }
 ```
 
-with the tool:
-
-```text
-okf_load_bundle
-```
-
-The loaded bundle is session-only. It stays available until the MCP server process exits. Downloaded archives are cached locally under `--cache-dir`.
+The loaded bundle is session-only. It stays available until the MCP server process exits. Downloaded and extracted archives are cached locally under `--cache-dir`.
 
 ## MCP Tools
 
@@ -249,6 +281,8 @@ Install:
 npm ci
 ```
 
+`dist/` is committed so that `npx github:Veevarts/okf-atlas-mcp` works without a build step. After changing anything under `src/`, run `npm run build` and commit the updated `dist/`. CI fails when `dist/` is stale.
+
 Run checks:
 
 ```bash
@@ -271,7 +305,7 @@ npm pack --dry-run
 
 ## Security And Privacy
 
-`okf-atlas-mcp` downloads user-provided GitHub bundle URLs and stores archives in the configured local cache directory. Only load bundles from sources you trust.
+`okf-atlas-mcp` downloads user-provided GitHub bundle URLs, extracts user-provided local archives, and stores them in the configured local cache directory. Only load bundles from sources you trust.
 
 For private repositories, keep GitHub App credentials in environment variables or a secret manager. Do not paste tokens, private keys, or installation tokens into prompts or MCP tool arguments.
 

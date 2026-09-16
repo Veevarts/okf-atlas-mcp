@@ -1,7 +1,7 @@
 {
-  "name": "okf-atlas-mcp",
+  "name": "@veevarts/okf-atlas-mcp",
   "version": "0.1.0",
-  "description": "MCP server for navigating OKF knowledge bundles.",
+  "description": "MCP server for navigating OKF knowledge bundles from GitHub URLs, local folders, or zip archives.",
   "license": "Apache-2.0",
   "keywords": [
     "mcp",
@@ -13,12 +13,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rodcar/okf-atlas-mcp.git"
+    "url": "git+https://github.com/Veevarts/okf-atlas-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/rodcar/okf-atlas-mcp/issues"
+    "url": "https://github.com/Veevarts/okf-atlas-mcp/issues"
   },
-  "homepage": "https://github.com/rodcar/okf-atlas-mcp#readme",
+  "homepage": "https://github.com/Veevarts/okf-atlas-mcp#readme",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -29,9 +29,10 @@
     }
   },
   "bin": {
-    "okf-atlas-mcp": "./dist/cli.js"
+    "okf-atlas-mcp": "./bin/okf-atlas-mcp.js"
   },
   "files": [
+    "bin",
     "dist",
     "README.md",
     "LICENSE",
